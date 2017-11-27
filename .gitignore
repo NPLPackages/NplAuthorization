@@ -1,0 +1,12 @@
+.vs
+*.db
+*.opendb
+*.user
+*.sdf
+*.suo
+Debug
+*.log
+log.txt
+Properties
+bin
+obj
