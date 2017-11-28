@@ -24,10 +24,27 @@ function GithubService:onInit(token,api,branch)
     self.branch = branch or "master";
     self.headers = {
         ["Accept"] = "application/vnd.github.full+json",
-        ["User-Agent"] = "NplCad",
-        ["Authorization"] = "Bearer " .. token, 
+        ["User-Agent"] = "Npl",
+        --["Authorization"] = "Bearer " .. token, 
     }
     return self;
+end
+
+--https://developer.github.com/v3/users/#get-the-authenticated-user
+function GithubService:getProfile(callback)
+    local url = string.format("%s/user?access_token=%s",self.api,self.token);
+    LOG.std(nil,"debug","GithubService:getProfile",url)
+    System.os.GetUrl({
+        url = url,
+        json = true,
+        headers = self.headers,
+    }, function(err, msg)
+        LOG.std(nil,"debug","GithubService:getProfile status",err)
+        LOG.std(nil,"debug","GithubService:getProfile msg",msg)
+        if(callback)then
+            callback(err, msg);
+        end
+    end);
 end
 --https://developer.github.com/v3/repos/contents/#get-contents
 function GithubService:getFile(owner,repo,path,callback)
@@ -38,44 +55,36 @@ function GithubService:getFile(owner,repo,path,callback)
         url = url,
         json = true,
         headers = self.headers,
-    }, function(err, msg, data)
+    }, function(err, msg)
         LOG.std(nil,"debug","GithubService:getFile status",err)
         LOG.std(nil,"debug","GithubService:getFile msg",msg)
-        LOG.std(nil,"debug","GithubService:getFile data",data)
         if(callback)then
-            callback(err, msg, data);
+            callback(err, msg);
         end
     end);
 end
 --https://developer.github.com/v3/repos/contents/#get-contents
 function GithubService:getContent(owner,repo,path,callback)
-    self:getFile(owner,repo,path,function(err, msg, data)
+    self:getFile(owner,repo,path,function(err, msg)
         if(err == 200)then
-            if(data)then
+            if(msg and msg.data)then
+                local data = msg.data;
                 local content = data.content;
                 local name = data.name;
                 local path = data.path;
                 local download_url = data.download_url;
                 LOG.std(nil,"debug","GithubService:getContent values",{name = name, path = path, download_url = download_url, })
-                System.os.GetUrl({ url = download_url },function(err, msg, data)
+                System.os.GetUrl({ url = download_url },function(err, msg)
                     LOG.std(nil,"debug","GithubService:getContent status",err)
                     LOG.std(nil,"debug","GithubService:getContent msg",msg)
-                    LOG.std(nil,"debug","GithubService:getContent data",data)
-                    if(err == 200)then
-                        if(msg and msg.data)then
-                            local content = msg.data; --raw data
-                            commonlib.echo("============content");
-                            commonlib.echo(content);
-                        end
-                    end
                     if(callback)then
-                        callback(err, msg, data);
+                        callback(err, msg);
                     end
                 end);
             end
         else
             if(callback)then
-                callback(err, msg, data);
+                callback(err, msg);
             end
         end
     end)
@@ -95,21 +104,21 @@ function GithubService:createFile(owner,repo,path,content,callback)
             ["content"] = Encoding.base64(content),
             ["branch"] = self.branch,
         }
-    }, function(err, msg, data)
+    }, function(err, msg)
         LOG.std(nil,"debug","GithubService:createFile status",err)
         LOG.std(nil,"debug","GithubService:createFile msg",msg)
-        LOG.std(nil,"debug","GithubService:createFile data",data)
         if(callback)then
-            callback(err, msg, data);
+            callback(err, msg);
         end
     end)
 end
 --https://developer.github.com/v3/repos/contents/#update-a-file
 function GithubService:updateFile(owner,repo,path,content,callback)
     if(not owner or not repo or not path)then return end
-    self:getFile(owner,repo,path,function(err, msg, data)
+    self:getFile(owner,repo,path,function(err, msg)
         if(err == 200)then
-            if(data)then
+            if(msg and msg.data)then
+                local data = msg.data;
                 local sha = data.sha;
                 local url = string.format("%s/repos/%s/%s/contents/%s?access_token=%s",self.api,owner,repo,path,self.token);
                 LOG.std(nil,"debug","GithubService:updateFile",url)
@@ -124,27 +133,27 @@ function GithubService:updateFile(owner,repo,path,content,callback)
                         ["branch"] = self.branch,
                         ["sha"] = sha,
                     }
-                }, function(err, msg, data)
+                }, function(err, msg)
                     LOG.std(nil,"debug","GithubService:updateFile status",err)
                     LOG.std(nil,"debug","GithubService:updateFile msg",msg)
-                    LOG.std(nil,"debug","GithubService:updateFile data",data)
                     if(callback)then
-                        callback(err, msg, data);
+                        callback(err, msg);
                     end
                 end)
             end
         else
             if(callback)then
-                callback(err, msg, data);
+                callback(err, msg);
             end
         end
     end)
 end
 --https://developer.github.com/v3/repos/contents/#delete-a-file
 function GithubService:deleteFile(owner,repo,path,callback)
-    self:getFile(owner,repo,path,function(err, msg, data)
+    self:getFile(owner,repo,path,function(err, msg)
         if(err == 200)then
-            if(data)then
+            if(msg and msg.data)then
+                local data = msg.data;
                 local sha = data.sha;
                 local url = string.format("%s/repos/%s/%s/contents/%s?access_token=%s",self.api,owner,repo,path,self.token);
                 LOG.std(nil,"debug","GithubService:deleteFile",url)
@@ -158,18 +167,17 @@ function GithubService:deleteFile(owner,repo,path,callback)
                         ["branch"] = self.branch,
                         ["sha"] = sha,
                     }
-                }, function(err, msg, data)
+                }, function(err, msg)
                     LOG.std(nil,"debug","GithubService:deleteFile status",err)
                     LOG.std(nil,"debug","GithubService:deleteFile msg",msg)
-                    LOG.std(nil,"debug","GithubService:deleteFile data",data)
                     if(callback)then
-                        callback(err, msg, data);
+                        callback(err, msg);
                     end
                 end)
             end
         else
             if(callback)then
-                callback(err, msg, data);
+                callback(err, msg);
             end
         end
     end)
@@ -184,14 +192,10 @@ function GithubService:getRootTree(owner,repo,callback)
         json = true,
         headers = self.headers,
     }, function(err, msg, data)
-        local len = #(data.tree);
         LOG.std(nil,"debug","GithubService:getRootTree status",err)
         LOG.std(nil,"debug","GithubService:getRootTree msg",msg)
-        LOG.std(nil,"debug","GithubService:getRootTree data",data)
-        LOG.std(nil,"debug","GithubService:getRootTree len",len)
-        local k,v;
-        for k,v in ipairs(data.tree) do
-            LOG.std(nil,"debug","GithubService:getTree v",v)
+        if(callback)then
+            callback(err, msg);
         end
     end);
 end
@@ -204,12 +208,11 @@ function GithubService:listHooks(owner,repo,callback)
         url = url,
         json = true,
         headers = self.headers,
-    }, function(err, msg, data)
+    }, function(err, msg)
         LOG.std(nil,"debug","GithubService:listHooks status",err)
         LOG.std(nil,"debug","GithubService:listHooks msg",msg)
-        LOG.std(nil,"debug","GithubService:listHooks data",data)
         if(callback)then
-            callback(err, msg, data);
+            callback(err, msg);
         end
     end);
 end
@@ -219,7 +222,7 @@ function GithubService:createHook(owner,repo,callback_url,callback)
     local url = string.format("%s/repos/%s/%s/hooks?access_token=%s",self.api,owner,repo,self.token);
     LOG.std(nil,"debug","GithubService:createHook",url)
      System.os.GetUrl({
-        method = "PUT",
+        method = "POST",
         url = url,
         json = true,
         headers = self.headers,
@@ -229,12 +232,72 @@ function GithubService:createHook(owner,repo,callback_url,callback)
             events = { "push" },
             config = { url  = callback_url, content_type = "json", },
         },
-    }, function(err, msg, data)
+    }, function(err, msg)
         LOG.std(nil,"debug","GithubService:createHook status",err)
         LOG.std(nil,"debug","GithubService:createHook msg",msg)
-        LOG.std(nil,"debug","GithubService:createHook data",data)
         if(callback)then
-            callback(err, msg, data);
+            callback(err, msg);
+        end
+    end);
+end
+--https://developer.github.com/v3/repos/#list-your-repositories
+function GithubService:getRepos(visibility,affiliation,sort,direction,callback)
+    visibility = visibility or "public";
+    affiliation = affiliation or "owner";
+    sort = sort or "created";
+    direction = direction or "asc";
+    local url = string.format("%s/user/repos?visibility=%s&affiliation=%s&sort=%s&direction=%s&access_token=%s",self.api,visibility,affiliation,sort,direction,self.token);
+    LOG.std(nil,"debug","GithubService:getRepos",url)
+     System.os.GetUrl({
+        url = url,
+        json = true,
+        headers = self.headers,
+    }, function(err, msg)
+        LOG.std(nil,"debug","GithubService:getRepos status",err)
+        LOG.std(nil,"debug","GithubService:getRepos msg",msg)
+        if(callback)then
+            callback(err, msg);
+        end
+    end);
+end
+--https://developer.github.com/v3/repos/#create
+function GithubService:createRepos(name,callback)
+    if(not name)then return end
+    local url = string.format("%s/user/repos?access_token=%s",self.api,self.token);
+    LOG.std(nil,"debug","GithubService:createRepos",url)
+     System.os.GetUrl({
+        method = "POST",
+        url = url,
+        json = true,
+        headers = self.headers,
+        form = {
+            name = name,
+            description = name,
+            private = false,
+        },
+    }, function(err, msg)
+        LOG.std(nil,"debug","GithubService:createRepos status",err)
+        LOG.std(nil,"debug","GithubService:createRepos msg",msg)
+        if(callback)then
+            callback(err, msg);
+        end
+    end);
+end
+--https://developer.github.com/v3/repos/#delete-a-repository
+function GithubService:deleteRepos(owner,name,callback)
+    if(not owner or not name)then return end
+    local url = string.format("%s/repos/%s/%s?access_token=%s",self.api,owner,name,self.token);
+    LOG.std(nil,"debug","GithubService:deleteRepos",url)
+     System.os.GetUrl({
+        method = "DELETE",
+        url = url,
+        json = true,
+        headers = self.headers,
+    }, function(err, msg)
+        LOG.std(nil,"debug","GithubService:deleteRepos status",err)
+        LOG.std(nil,"debug","GithubService:deleteRepos msg",msg)
+        if(callback)then
+            callback(err, msg);
         end
     end);
 end
