@@ -301,3 +301,20 @@ function GithubService:deleteRepos(owner,name,callback)
         end
     end);
 end
+--https://developer.github.com/v3/repos/#get
+function GithubService:getRepoInfo(owner,name,callback)
+    if(not owner or not name)then return end
+    local url = string.format("%s/repos/%s/%s?access_token=%s",self.api,owner,name,self.token);
+    LOG.std(nil,"debug","GithubService:getRepoInfo",url)
+     System.os.GetUrl({
+        url = url,
+        json = true,
+        headers = self.headers,
+    }, function(err, msg)
+        LOG.std(nil,"debug","GithubService:getRepoInfo status",err)
+        LOG.std(nil,"debug","GithubService:getRepoInfo msg",msg)
+        if(callback)then
+            callback(err, msg);
+        end
+    end);
+end
