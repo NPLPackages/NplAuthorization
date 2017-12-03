@@ -49,7 +49,12 @@ end
 --https://developer.github.com/v3/repos/contents/#get-contents
 function GithubService:getFile(owner,repo,path,callback)
     if(not owner or not repo or not path)then return end
-    local url = string.format("%s/repos/%s/%s/contents/%s?ref=%s&access_token=%s",self.api,owner,repo,path,self.branch,self.token);
+    local url;
+    if(not self.token or self.token == "")then
+        url = string.format("%s/repos/%s/%s/contents/%s?ref=%s",self.api,owner,repo,path,self.branch);
+    else
+        url = string.format("%s/repos/%s/%s/contents/%s?ref=%s&access_token=%s",self.api,owner,repo,path,self.branch,self.token);
+    end
     LOG.std(nil,"debug","GithubService:getFile",url)
     System.os.GetUrl({
         url = url,
@@ -187,9 +192,17 @@ function GithubService:getRootTree(owner,repo,recursive,callback)
     if(not owner or not repo)then return end
     local url;
     if(recursive and tonumber(recursive) == 1)then
-        url = string.format("%s/repos/%s/%s/git/trees/%s?access_token=%s&recursive=1",self.api,owner,repo,self.branch,self.token);
+        if(not self.token or self.token == "")then
+            url = string.format("%s/repos/%s/%s/git/trees/%s?recursive=1",self.api,owner,repo,self.branch);
+        else
+            url = string.format("%s/repos/%s/%s/git/trees/%s?access_token=%s&recursive=1",self.api,owner,repo,self.branch,self.token);
+        end
     else
-        url = string.format("%s/repos/%s/%s/git/trees/%s?access_token=%s",self.api,owner,repo,self.branch,self.token);
+        if(not self.token or self.token == "")then
+            url = string.format("%s/repos/%s/%s/git/trees/%s",self.api,owner,repo,self.branch);
+        else
+            url = string.format("%s/repos/%s/%s/git/trees/%s?access_token=%s",self.api,owner,repo,self.branch,self.token);
+        end
     end
     LOG.std(nil,"debug","GithubService:getTree",url)
      System.os.GetUrl({
