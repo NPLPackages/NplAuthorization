@@ -183,9 +183,14 @@ function GithubService:deleteFile(owner,repo,path,callback)
     end)
 end
 --https://developer.github.com/v3/git/trees/#get-a-tree-recursively
-function GithubService:getRootTree(owner,repo,callback)
+function GithubService:getRootTree(owner,repo,recursive,callback)
     if(not owner or not repo)then return end
-    local url = string.format("%s/repos/%s/%s/git/trees/%s?access_token=%s&recursive=1",self.api,owner,repo,self.branch,self.token);
+    local url;
+    if(recursive and tonumber(recursive) == 1)then
+        url = string.format("%s/repos/%s/%s/git/trees/%s?access_token=%s&recursive=1",self.api,owner,repo,self.branch,self.token);
+    else
+        url = string.format("%s/repos/%s/%s/git/trees/%s?access_token=%s",self.api,owner,repo,self.branch,self.token);
+    end
     LOG.std(nil,"debug","GithubService:getTree",url)
      System.os.GetUrl({
         url = url,
